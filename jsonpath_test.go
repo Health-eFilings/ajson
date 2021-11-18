@@ -131,6 +131,26 @@ func sliceEqual(a, b []string) bool {
 	return true
 }
 
+func commandSliceEqual(a, b []Command) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func commandSliceString(array []Command) string {
+	var values []string
+	for _, v := range array {
+		values = append(values, v.Value)
+	}
+	return "[" + strings.Join(values, ", ") + "]"
+}
+
 func TestJsonPath(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -258,32 +278,32 @@ func TestParseJSONPath(t *testing.T) {
 	tests := []struct {
 		name     string
 		path     string
-		expected []string
+		expected []Command
 	}{
-		{name: "root", path: "$", expected: []string{"$"}},
-		{name: "roots", path: "$.", expected: []string{"$"}},
-		{name: "all objects", path: "$..", expected: []string{"$", ".."}},
-		{name: "only children", path: "$.*", expected: []string{"$", "*"}},
-		{name: "all objects children", path: "$..*", expected: []string{"$", "..", "*"}},
-		{name: "path dot:simple", path: "$.root.element", expected: []string{"$", "root", "element"}},
-		{name: "path dot:combined", path: "$.root.*.element", expected: []string{"$", "root", "*", "element"}},
-		{name: "path bracket:simple", path: "$['root']['element']", expected: []string{"$", "'root'", "'element'"}},
-		{name: "path bracket:combined", path: "$['root'][*]['element']", expected: []string{"$", "'root'", "*", "'element'"}},
-		{name: "path bracket:int", path: "$['store']['book'][0]['title']", expected: []string{"$", "'store'", "'book'", "0", "'title'"}},
-		{name: "path combined:simple", path: "$['root'].*['element']", expected: []string{"$", "'root'", "*", "'element'"}},
-		{name: "path combined:dotted", path: "$.['root'].*.['element']", expected: []string{"$", "'root'", "*", "'element'"}},
-		{name: "path combined:dotted small", path: "$['root'].*.['element']", expected: []string{"$", "'root'", "*", "'element'"}},
-		{name: "phoneNumbers", path: "$.phoneNumbers[*].type", expected: []string{"$", "phoneNumbers", "*", "type"}},
-		{name: "filtered", path: "$.store.book[?(@.price < 10)].title", expected: []string{"$", "store", "book", "?(@.price < 10)", "title"}},
-		{name: "formula", path: "$..phoneNumbers..('ty' + 'pe')", expected: []string{"$", "..", "phoneNumbers", "..", "('ty' + 'pe')"}},
+		{name: "root", path: "$", expected: []Command{{Value: "$"}}},
+		{name: "roots", path: "$.", expected: []Command{{Value: "$"}}},
+		{name: "all objects", path: "$..", expected: []Command{{Value: "$"}, {Value: ".."}}},
+		{name: "only children", path: "$.*", expected: []Command{{Value: "$"}, {Value: "*"}}},
+		{name: "all objects children", path: "$..*", expected: []Command{{Value: "$"}, {Value: ".."}, {Value: "*"}}},
+		{name: "path dot:simple", path: "$.root.element", expected: []Command{{Value: "$"}, {Value: "root"}, {Value: "element"}}},
+		{name: "path dot:combined", path: "$.root.*.element", expected: []Command{{Value: "$"}, {Value: "root"}, {Value: "*"}, {Value: "element"}}},
+		{name: "path bracket:simple", path: "$['root']['element']", expected: []Command{{Value: "$"}, {Value: "'root'"}, {Value: "'element'"}}},
+		{name: "path bracket:combined", path: "$['root'][*]['element']", expected: []Command{{Value: "$"}, {Value: "'root'"}, {Value: "*"}, {Value: "'element'"}}},
+		{name: "path bracket:int", path: "$['store']['book'][0]['title']", expected: []Command{{Value: "$"}, {Value: "'store'"}, {Value: "'book'"}, {Value: "0"}, {Value: "'title'"}}},
+		{name: "path combined:simple", path: "$['root'].*['element']", expected: []Command{{Value: "$"}, {Value: "'root'"}, {Value: "*"}, {Value: "'element'"}}},
+		{name: "path combined:dotted", path: "$.['root'].*.['element']", expected: []Command{{Value: "$"}, {Value: "'root'"}, {Value: "*"}, {Value: "'element'"}}},
+		{name: "path combined:dotted small", path: "$['root'].*.['element']", expected: []Command{{Value: "$"}, {Value: "'root'"}, {Value: "*"}, {Value: "'element'"}}},
+		{name: "phoneNumbers", path: "$.phoneNumbers[*].type", expected: []Command{{Value: "$"}, {Value: "phoneNumbers"}, {Value: "*"}, {Value: "type"}}},
+		{name: "filtered", path: "$.store.book[?(@.price < 10)].title", expected: []Command{{Value: "$"}, {Value: "store"}, {Value: "book"}, {Value: "?(@.price < 10)"}, {Value: "title"}}},
+		{name: "formula", path: "$..phoneNumbers..('ty' + 'pe')", expected: []Command{{Value: "$"}, {Value: ".."}, {Value: "phoneNumbers"}, {Value: ".."}, {Value: "('ty' + 'pe')"}}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			result, err := ParseJSONPath(test.path)
 			if err != nil {
 				t.Errorf("Error on parseJsonPath(json, %s) as %s: %s", test.path, test.name, err.Error())
-			} else if !sliceEqual(result, test.expected) {
-				t.Errorf("Error on parseJsonPath(%s) as %s: path doesn't match\nExpected: %s\nActual: %s", test.path, test.name, sliceString(test.expected), sliceString(result))
+			} else if !commandSliceEqual(result, test.expected) {
+				t.Errorf("Error on parseJsonPath(%s) as %s: path doesn't match\nExpected: %s\nActual: %s", test.path, test.name, commandSliceString(test.expected), commandSliceString(result))
 			}
 		})
 	}
@@ -1427,7 +1447,7 @@ func TestApplyJSONPath(t *testing.T) {
 
 	type args struct {
 		node     *Node
-		commands []string
+		commands []Command
 	}
 	tests := []struct {
 		name       string
@@ -1448,7 +1468,7 @@ func TestApplyJSONPath(t *testing.T) {
 			name: "root",
 			args: args{
 				node:     node1,
-				commands: []string{"$"},
+				commands: []Command{{Value: "$"}},
 			},
 			wantResult: []*Node{node1},
 			wantErr:    false,
@@ -1457,7 +1477,7 @@ func TestApplyJSONPath(t *testing.T) {
 			name: "second",
 			args: args{
 				node:     array,
-				commands: []string{"$", "1"},
+				commands: []Command{{Value: "$"}, {Value: "1"}},
 			},
 			wantResult: []*Node{array.children["1"]},
 			wantErr:    false,
@@ -1466,7 +1486,7 @@ func TestApplyJSONPath(t *testing.T) {
 			name: "both",
 			args: args{
 				node:     array,
-				commands: []string{"$", "1,0"},
+				commands: []Command{{Value: "$"}, {Value: "1,0"}},
 			},
 			wantResult: []*Node{array.children["1"], array.children["0"]},
 			wantErr:    false,
@@ -1503,7 +1523,7 @@ func ExampleApplyJSONPath() {
 	for i := 0; i < 10; i++ {
 		key1 := strconv.Itoa(i)
 		key2 := strconv.Itoa(4 - i)
-		nodes, _ := ApplyJSONPath(node, []string{"$", key1, key2})
+		nodes, _ := ApplyJSONPath(node, []Command{{Value: "$"}, {Value: key1}, {Value: key2}})
 		fmt.Printf("%s", nodes)
 	}
 
