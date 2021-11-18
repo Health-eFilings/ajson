@@ -1,3 +1,50 @@
+# IMPORTANT
+
+This repository is a fork of [spyzhov/ajson](https://github.com/spyzhov/ajson) that includes the "feature" object expression/filtering that **IS NOT IN THE SPECIFICATION** [link](https://github.com/ietf-wg-jsonpath/draft-ietf-jsonpath-base). This is an additional feature and none of the supported features in the original repository were changed/removed. If this functionality is not required we strongly recommend using the original library.
+
+e.g.
+```json
+{
+  "type": "book",
+  "id": "A1234",
+  "author": {
+    "id": "AA123",
+    "name": "Foo"
+  },
+  "notes": [
+    {
+      "id": "N1",
+      "title": "Some title 1",
+      "note": "Nice"
+    },
+    {
+      "id": "N2",
+      "title": "Some title 2",
+      "note": "Very Nice"
+    }
+  ]
+}
+```
+
+```json
+// In specification filtering
+// $.notes[?(@.id=="N1")]
+{
+  "id": "N1",
+  "title": "Some title 1",
+  "note": "Nice"
+}
+
+// Object filtering
+// ${?(@.type=="book")}.author
+{
+  "id": "AA123",
+  "name": "Foo"
+}
+```
+
+When `{}` instead `[]` are used the expression/filter is applied to the working node.
+
 # Abstract JSON 
 
 [![Build Status](https://travis-ci.com/spyzhov/ajson.svg?branch=master)](https://travis-ci.com/spyzhov/ajson)
